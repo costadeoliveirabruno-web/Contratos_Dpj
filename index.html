@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPJ | Painel de Controle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+
+    <div class="max-w-6xl mx-auto p-4 md:p-10">
+        <header class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-green-700">DPJ - DIVISÃO DE PARQUES E JARDINS</h1>
+                <p class="text-slate-500 font-medium text-sm">Monitoramento em Tempo Real de Contratos</p>
+            </div>
+            <button onclick="carregarDados()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold transition flex items-center gap-3">
+                <i id="sync-icon" class="fas fa-sync-alt"></i> Atualizar
+            </button>
+        </header>
+
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400">Contrato</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400 text-center">Alerta</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400">Contratada / Objeto</th>
+                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400 text-right">Saldo (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo" class="divide-y divide-slate-100 text-sm">
+                        <tr>
+                            <td colspan="4" class="px-6 py-20 text-center text-slate-400">
+                                <i class="fas fa-spinner animate-spin text-2xl mb-2"></i><br>Buscando dados da prefeitura...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwVXodbp9dtopkHZhJX4ijPyNSO6XAwbalJEbvR7GvCuvpKonW6nGajdyBPd6URUHiqBQ/exec";
+
+        async function carregarDados() {
+            const icon = document.getElementById('sync-icon');
+            icon.classList.add('animate-spin');
+            
+            try {
+                const response = await fetch(API_URL);
+                const dados = await response.json();
+                renderizar(dados);
+            } catch (error) {
+                console.error("Erro:", error);
+                document.getElementById('tabela-corpo').innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-500">Erro ao conectar com a planilha.</td></tr>';
+            } finally {
+                icon.classList.remove('animate-spin');
+            }
+        }
+
+        function renderizar(lista) {
+            const corpo = document.getElementById('tabela-corpo');
+            corpo.innerHTML = lista.map(item => {
+                if(!item["Contrato"]) return "";
+
+                // Cores do Alerta
+                let corAlerta = "bg-green-100 text-green-700";
+                if(item["⚠️ Alerta Vencimento"]?.includes("🔴")) corAlerta = "bg-red-100 text-red-700 font-bold";
+                if(item["⚠️ Alerta Vencimento"]?.includes("≤30")) corAlerta = "bg-orange-100 text-orange-700 font-bold";
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-bold">${item["Contrato"]}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-3 py-1 rounded-full text-[10px] uppercase ${corAlerta}">
+                                ${item["⚠️ Alerta Vencimento"] || "OK"}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold">${item["Contratada"]}</div>
+                            <div class="text-[11px] text-slate-400 truncate w-64">${item["Objeto"]}</div>
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-slate-700">
+                            R$ ${item["Saldo Contrato (R$)"] || "0,00"}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.onload = carregarDados;
+    </script>
+</body>
+</html>
