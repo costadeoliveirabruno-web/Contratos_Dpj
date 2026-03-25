@@ -3,96 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DPJ | Painel de Controle</title>
+    <title>DPJ | Intelligence Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .gradient-text { background: linear-gradient(90deg, #059669, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-900 font-sans">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen">
 
-    <div class="max-w-6xl mx-auto p-4 md:p-10">
-        <header class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-black text-green-700">DPJ - DIVISÃO DE PARQUES E JARDINS</h1>
-                <p class="text-slate-500 font-medium text-sm">Monitoramento em Tempo Real de Contratos</p>
+    <div class="flex flex-col lg:flex-row h-screen overflow-hidden">
+        
+        <aside class="w-full lg:w-72 bg-white border-r border-slate-200 flex flex-col p-6 space-y-8 z-50">
+            <div class="flex items-center gap-3 px-2">
+                <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                    <i class="fas fa-leaf text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-tight">DPJ Master</h1>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Poços de Caldas</span>
+                </div>
             </div>
-            <button onclick="carregarDados()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold transition flex items-center gap-3">
-                <i id="sync-icon" class="fas fa-sync-alt"></i> Atualizar
-            </button>
-        </header>
 
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400">Contrato</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400 text-center">Alerta</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400">Contratada / Objeto</th>
-                            <th class="px-6 py-4 text-xs font-bold uppercase text-slate-400 text-right">Saldo (R$)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-corpo" class="divide-y divide-slate-100 text-sm">
-                        <tr>
-                            <td colspan="4" class="px-6 py-20 text-center text-slate-400">
-                                <i class="fas fa-spinner animate-spin text-2xl mb-2"></i><br>Buscando dados da prefeitura...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <nav class="flex-1 space-y-2">
+                <button onclick="mudarAba('dashboard')" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all active">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </button>
+                <button onclick="mudarAba('contratos')" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all">
+                    <i class="fas fa-file-signature"></i> Contratos
+                </button>
+                <button onclick="mudarAba('empenhos')" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all">
+                    <i class="fas fa-wallet"></i> Empenhos
+                </button>
+            </nav>
+
+            <div class="bg-emerald-600 rounded-2xl p-5 text-white relative overflow-hidden">
+                <i class="fas fa-shield-halved absolute -right-4 -bottom-4 text-6xl opacity-20 rotate-12"></i>
+                <p class="text-xs font-bold opacity-80 mb-1 italic">Manto Supremo</p>
+                <p class="text-sm font-semibold">Osvaldo Reis</p>
+                <p class="text-[10px] opacity-70 uppercase tracking-tighter">Coordenador DPJ</p>
             </div>
-        </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-10">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div>
+                    <h2 id="view-title" class="text-3xl font-extrabold text-slate-800 tracking-tight">Visão Geral</h2>
+                    <p class="text-slate-500 text-sm">Dados atualizados em tempo real via Google Sheets.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+                        <input type="text" id="masterSearch" onkeyup="globalSearch()" placeholder="Pesquisar em tudo..." 
+                        class="pl-11 pr-4 py-3 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 w-64 transition-all shadow-sm">
+                    </div>
+                    <button onclick="fetchData()" class="p-3.5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all active:scale-90 shadow-sm">
+                        <i id="reload-icon" class="fas fa-sync-alt text-emerald-600 text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="view-dashboard" class="view-content space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-white">
+                    <div class="bg-gradient-to-br from-emerald-600 to-emerald-500 p-6 rounded-[2rem] shadow-xl shadow-emerald-100">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-2">Saldo Global</p>
+                        <h4 id="kpi-saldo" class="text-2xl font-black">R$ 0,00</h4>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm text-slate-800">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contratos Ativos</p>
+                        <h4 id="kpi-ativos" class="text-2xl font-black italic">0</h4>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm text-slate-800">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Vencem ≤ 30 dias</p>
+                        <h4 id="kpi-alerta" class="text-2xl font-black text-orange-500 italic">0</h4>
+                    </div>
+                    <div class="bg-rose-500 p-6 rounded-[2rem] shadow-xl shadow-rose-100">
+                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-2">Críticos/Vencidos</p>
+                        <h4 id="kpi-vencidos" class="text-2xl font-black italic">0</h4>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-emerald-500 font-bold uppercase"></i> Distribuição de Recursos
+                        </h3>
+                        <canvas id="chartResources" height="200"></canvas>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-hourglass-half text-emerald-500 font-bold uppercase"></i> Saúde da Vigência
+                        </h3>
+                        <canvas id="chartHealth" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-contratos" class="view-content hidden">
+                <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50/50">
+                            <tr>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Contrato / Empresa</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
+                                <th class="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Saldo Disponível</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-contratos-corpo" class="divide-y divide-slate-50">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-empenhos" class="view-content hidden">
+                <div class="glass-card p-12 rounded-[2rem] text-center max-w-2xl mx-auto">
+                    <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 text-3xl">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2 font-bold uppercase">Módulo de Empenhos em Integração</h3>
+                    <p class="text-slate-500 font-medium">Osvaldo, este módulo está sendo otimizado para cruzar dados de Notas Fiscais com o empenho municipal. Aguarde a próxima atualização Master.</p>
+                </div>
+            </div>
+
+        </main>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwVXodbp9dtopkHZhJX4ijPyNSO6XAwbalJEbvR7GvCuvpKonW6nGajdyBPd6URUHiqBQ/exec";
+        let RAW_DATA = [];
+        let myChartResources = null;
+        let myChartHealth = null;
 
-        async function carregarDados() {
-            const icon = document.getElementById('sync-icon');
+        async function fetchData() {
+            const icon = document.getElementById('reload-icon');
             icon.classList.add('animate-spin');
-            
             try {
                 const response = await fetch(API_URL);
-                const dados = await response.json();
-                renderizar(dados);
+                RAW_DATA = await response.json();
+                processDashboard(RAW_DATA);
+                renderContratos(RAW_DATA);
             } catch (error) {
-                console.error("Erro:", error);
-                document.getElementById('tabela-corpo').innerHTML = '<tr><td colspan="4" class="p-10 text-center text-red-500">Erro ao conectar com a planilha.</td></tr>';
+                console.error("API Error", error);
             } finally {
                 icon.classList.remove('animate-spin');
             }
         }
 
-        function renderizar(lista) {
-            const corpo = document.getElementById('tabela-corpo');
-            corpo.innerHTML = lista.map(item => {
-                if(!item["Contrato"]) return "";
+        function processDashboard(data) {
+            let total = 0, ativos = 0, alerta = 0, vencidos = 0;
+            let empresasLabels = [], saldosValues = [];
 
-                // Cores do Alerta
-                let corAlerta = "bg-green-100 text-green-700";
-                if(item["⚠️ Alerta Vencimento"]?.includes("🔴")) corAlerta = "bg-red-100 text-red-700 font-bold";
-                if(item["⚠️ Alerta Vencimento"]?.includes("≤30")) corAlerta = "bg-orange-100 text-orange-700 font-bold";
+            data.forEach(item => {
+                if(!item["Contrato"]) return;
+                ativos++;
+                const s = parseFloat(item["Saldo Contrato (R$)"]) || 0;
+                total += s;
+                
+                if(item["⚠️ Alerta Vencimento"].includes("🔴")) vencidos++;
+                if(item["⚠️ Alerta Vencimento"].includes("≤30")) alerta++;
+
+                if(s > 0) {
+                    empresasLabels.push(item["Contratada"].split(' ')[0]);
+                    saldosValues.push(s);
+                }
+            });
+
+            document.getElementById('kpi-saldo').innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('kpi-ativos').innerText = ativos;
+            document.getElementById('kpi-alerta').innerText = alerta;
+            document.getElementById('kpi-vencidos').innerText = vencidos;
+
+            initCharts(empresasLabels, saldosValues, [vencidos, alerta, ativos - vencidos - alerta]);
+        }
+
+        function initCharts(labels, values, healthData) {
+            if(myChartResources) myChartResources.destroy();
+            if(myChartHealth) myChartHealth.destroy();
+
+            const ctx1 = document.getElementById('chartResources').getContext('2d');
+            myChartResources = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saldo (R$)',
+                        data: values,
+                        backgroundColor: '#10b981',
+                        borderRadius: 12
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+            });
+
+            const ctx2 = document.getElementById('chartHealth').getContext('2d');
+            myChartHealth = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Críticos', 'Atenção', 'Saudáveis'],
+                    datasets: [{
+                        data: healthData,
+                        backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                        borderWidth: 0,
+                        cutout: '70%'
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function renderContratos(data) {
+            const corpo = document.getElementById('lista-contratos-corpo');
+            corpo.innerHTML = data.map(item => {
+                if(!item["Contrato"]) return "";
+                let badge = "bg-emerald-50 text-emerald-600 border-emerald-100 font-bold uppercase";
+                if(item["⚠️ Alerta Vencimento"].includes("🔴")) badge = "bg-rose-50 text-rose-600 border-rose-100 font-bold uppercase animate-pulse";
+                if(item["⚠️ Alerta Vencimento"].includes("≤30")) badge = "bg-orange-50 text-orange-600 border-orange-100 font-bold uppercase";
 
                 return `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-6 py-4 font-bold">${item["Contrato"]}</td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="px-3 py-1 rounded-full text-[10px] uppercase ${corAlerta}">
-                                ${item["⚠️ Alerta Vencimento"] || "OK"}
-                            </span>
+                    <tr class="group hover:bg-slate-50 transition-all">
+                        <td class="px-8 py-6">
+                            <div class="text-[10px] font-black text-emerald-600 mb-1">${item["Contrato"]}</div>
+                            <div class="text-sm font-bold text-slate-800">${item["Contratada"]}</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">${item["Objeto"]}</div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="font-bold">${item["Contratada"]}</div>
-                            <div class="text-[11px] text-slate-400 truncate w-64">${item["Objeto"]}</div>
+                        <td class="px-8 py-6 text-center">
+                            <span class="px-4 py-1.5 rounded-full text-[9px] border ${badge}">${item["⚠️ Alerta Vencimento"]}</span>
                         </td>
-                        <td class="px-6 py-4 text-right font-mono font-bold text-slate-700">
-                            R$ ${item["Saldo Contrato (R$)"] || "0,00"}
+                        <td class="px-8 py-6 text-right">
+                            <div class="text-sm font-black text-slate-700 font-mono">${(parseFloat(item["Saldo Contrato (R$)"])||0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">Vence em: ${item["Fim"]}</div>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        window.onload = carregarDados;
+        function mudarAba(aba) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+            document.getElementById(`view-${aba}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('bg-emerald-50', 'text-emerald-600', 'active'));
+            event.currentTarget.classList.add('bg-emerald-50', 'text-emerald-600', 'active');
+            document.getElementById('view-title').innerText = aba.charAt(0).toUpperCase() + aba.slice(1);
+        }
+
+        function globalSearch() {
+            const term = document.getElementById('masterSearch').value.toLowerCase();
+            const filtered = RAW_DATA.filter(i => 
+                i["Contratada"]?.toLowerCase().includes(term) || 
+                i["Contrato"]?.toLowerCase().includes(term) ||
+                i["Objeto"]?.toLowerCase().includes(term)
+            );
+            renderContratos(filtered);
+        }
+
+        window.onload = fetchData;
     </script>
 </body>
 </html>
